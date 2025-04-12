@@ -1,0 +1,69 @@
+function anima(s3, s4, theta3, theta2, CG, data, np)          
+% Variables del programa principal
+H24=data.H24;
+V24=data.V24;
+V41=data.V41;
+L45=data.L45;
+L2=data.L2;
+
+%animacion
+nc=2; %numero de ciclos que quiero visualizar
+
+% aclaracion vbles:
+theta3=theta3';
+theta2=theta2';
+s4=s4';
+s3=s3';
+
+%tomamos centro de coordenadas en el punto fijo del rocker
+x3 = zeros(1,np); %punto fijo del rocker
+y3 = zeros(1,np);
+x1 = -H24*ones(1,np); %punto fijo amortiguador
+y1 = -V24*ones(1,np);
+x5 = s4; %corredera/neumatico
+y5 = V41*ones(1,np);
+x4 = L45.*cos(theta3+pi/2); %union rocker+push
+y4 = L45.*sin(theta3+pi/2);
+x2 = s3.*cos(theta2)-H24; % punto movil amortiguador, muelle/corredera
+y2 = s3.*sin(theta2)-V24;
+R1=x3-x2;
+R2=y3-y2;
+a = zeros(1,np);
+for i=1:np
+    R1(i)=x3(i)-x2(i);
+    R2(i)=y3(i)-y2(i);
+    R=[R1(i),R2(i)];
+    a(i)=norm(R);
+end
+%definicion de las lineas a dibujar
+X1 = [x5; x4; x3; x2];
+Y1 = [y5; y4; y3; y2];
+X2 = [x1; x2; x4];
+Y2 = [y1; y2; y4];
+
+for j=1:nc
+for i=1:np
+   plot(X1(:,i),Y1(:,i),'LineWidth',4)
+   hold on
+   plot(X2(:,i),Y2(:,i),'LineWidth',4)
+   plot(x5,y5,'r-','LineWidth',4)
+   plot(CG(1,i),CG(2,i),'b--o')
+   plot(CG(3,i),CG(4,i),'b--o')
+   plot(CG(5,i),CG(6,i),'b--o')
+   plot(CG(7,i),CG(8,i),'b--o')
+   plot(CG(9,i),CG(10,i),'b--o')
+   
+   hold off
+
+   %para animar necesito fijar los ejes, eliminarlos y ralentizar la animacion
+   %correr una vez y modificar luego para que se ajuste la pantalla al
+   %dibujo
+   axis([-300 300 -300 300])  % IMPORTANTE QUE LOS EJES TENGAN EL MISMO TAMAÑO PARA QUE SEA CUADRADO Y NO SE DEFORME
+   
+   %poner el mismo rango para que no se distorsione figura (circulo y no elipse)
+   axis square off
+   pause(.1)
+end
+disp(a)
+end
+
