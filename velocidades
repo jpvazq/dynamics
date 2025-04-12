@@ -1,0 +1,23 @@
+%funcion velocidades
+function wx=velocidades(qd,qip,data)
+
+L34=data.L34;
+L45=data.L45;
+L5=data.L5;
+
+phi3=qd(1);%theta2
+phi4=qd(2);%s3
+phi5=qd(3);%theta3
+phi6=qd(4);%theta5
+
+%phi2=qi;%s5
+phi2p=qip;%s5p
+
+%derivar respecto del tiempo qd en las ecuaciones de lazo y despejar qdp para
+%sacar A y b
+A=[-phi4*sin(phi3),cos(phi3),-L34*sin(phi5),0; ...
+    phi4*cos(phi3),sin(phi3),L34*cos(phi5),0;...
+    0,0,-L45*cos(phi5),-L5*sin(phi6);...
+    0,0,-L45*sin(phi5),L5*cos(phi6)];
+b=[0;0;phi2p;0];
+wx=A\b;
