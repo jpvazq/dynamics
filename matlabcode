@@ -1,0 +1,303 @@
+%programa de simulacion del mecanismo de cuatro barras
+%
+%
+clear all;
+close all;
+clc;
+
+L34=42;
+L45=35;
+L4=54.527;
+H24=58;
+V24=174;
+V41=40;
+L5=224;
+L2=179;
+
+data.L34=L34;
+data.L45=L45;
+data.H24=H24;
+data.V24=V24;
+data.V41=V41;
+data.L5=L5;
+data.L2=L2;
+data.L4=L4;
+
+w21=2.0;
+n=2;
+t0=0.0;
+tf=n*2*pi/w21;
+np=400;
+t=(t0:(tf-t0)/(np-1):tf)';
+%inicializar la variable independiente y sus derivadas
+
+s0=235;
+phi2=s0+15*sin(pi*t); %esto es s4, el desplazamiento de la corredera
+phi2p=15*pi*cos(pi*t);
+phi2pp=-15*(pi^2)*sin(pi*t);
+
+%inicializar las variables dependientes y sus derivadas como vectores de zeros
+phi3=zeros(np,1); %theta2
+phi4=zeros(np,1); %s3
+phi5=zeros(np,1); %theta3
+phi6=zeros(np,1); %theta5
+
+phi3p=zeros(np,1);
+phi4p=zeros(np,1);
+phi5p=zeros(np,1);
+phi6p=zeros(np,1);
+
+phi3pp=zeros(np,1);
+phi4pp=zeros(np,1);
+phi5pp=zeros(np,1);
+phi6pp=zeros(np,1);
+
+%centros de gravedad
+cg2=zeros(np,2);
+cg3=zeros(np,2);
+cg4=zeros(np,2);
+cg5=zeros(np,2);
+cg6=zeros(np,2);
+cg2p=zeros(np,2);
+cg3p=zeros(np,2);
+cg4p=zeros(np,2);
+cg5p=zeros(np,2);
+cg6p=zeros(np,2);
+cg2pp=zeros(np,2);
+cg3pp=zeros(np,2);
+cg4pp=zeros(np,2);
+cg5pp=zeros(np,2);
+cg6pp=zeros(np,2);
+mcgp2=zeros(np,1);
+mcgp3=zeros(np,1);
+mcgp4=zeros(np,1);
+mcgp5=zeros(np,1);
+mcgp6=zeros(np,1);
+mcgpp2=zeros(np,1);
+mcgpp3=zeros(np,1);
+mcgpp4=zeros(np,1);
+mcgpp5=zeros(np,1);
+mcgpp6=zeros(np,1);
+nu=zeros(np,1);
+
+x0=[2,3,43,1];
+options=optimset('Display','off');
+Xd=zeros(15,200);
+for i=1:np
+    %Posicion
+    wx=fsolve(@(x) restricciones(x,phi2(i),data),x0,options);
+    x0=wx;
+    phi3(i)=x0(1);
+    phi4(i)=x0(2);
+    phi5(i)=x0(3);
+    phi6(i)=x0(4);
+
+    qd=[phi3(i);phi4(i);phi5(i);phi6(i)];
+    qi=phi2(i);
+    %Velocidad
+    qip=phi2p(i);
+    wx=velocidades(qd,qip,data);
+    phi3p(i)=wx(1);
+    phi4p(i)=wx(2);
+    phi5p(i)=wx(3);
+    phi6p(i)=wx(4);
+
+    qdp=[phi3p(i);phi4p(i);phi5p(i);phi6p(i)];
+
+    %Aceleracion
+    qipp=phi2pp(i);
+    wx=aceleraciones(qd,qdp,qipp,data);
+    phi3pp(i)=wx(1);
+    phi4pp(i)=wx(2);
+    phi5pp(i)=wx(3);
+    phi6pp(i)=wx(4);
+    
+    %posiciones centros de gravedad
+    cg2(i,:)=[L2*0.5*cos(phi3(i))-H24 , L2*0.5*sin(phi3(i))-V24];
+    cg3(i,:)=[phi4(i)*cos(phi3(i))-H24,phi4(i)*sin(phi3(i))-V24];
+    H=16.4;eps=39.8*180/pi;
+    cg4(i,:)=[H*cos(phi5(i)-pi+eps),H*sin(phi5(i)-pi+eps)];
+    cg5(i,:)=0.5*[phi2(i)-L45*cos(phi5(i)+(pi/2)), V41-L45*sin(phi5(i)+(pi/2))]+[L45*cos(phi5(i)+(pi/2)),L45*sin(phi5(i)+(pi/2))];
+    cg6(i,:)=[phi2(i) , V41];
+
+    %velocidades centros de gravedad
+    cg2p(i,:)=[-L2*0.5*sin(phi3(i))*phi3p(i) , L2*0.5*cos(phi3(i))*phi3p(i)];
+    cg3p(i,:)=[phi4p(i)*cos(phi3(i))-phi4(i)*sin(phi3(i))*phi3p(i),...
+        phi4p(i)*sin(phi3(i))+phi4(i)*cos(phi3(i))*phi3p(i)];
+    cg4p(i,:)=[-phi5p(i)*H*sin(phi5(i)-pi+eps),phi5p(i)*H*cos(phi5(i)-pi+eps)];
+    cg5p(i,:)=0.5*[phi2p(i)+L45*sin(phi5p(i)+pi/2)*phi5p(i),-L45*cos(phi5(i)+pi/2)*phi5p(i)]+[-L45*sin(phi5(i)+pi/2)*phi5p(i),L45*cos(phi5p(i)+pi/2)*phi5p(i)];
+    cg6p(i,:)=[phi2p(i) , 0];
+
+    %aceleraciones centros de gravedad
+    cg2pp(i,:)=[-L2*0.5*sin(phi3(i))*phi3pp(i)-L2*0.5*cos(phi3(i))*(phi3p(i))^2,...
+        L2*0.5*cos(phi3(i))*phi3pp(i)-L2*0.5*sin(phi3(i))*(phi3p(i))^2];
+    cg3pp(i,:)=[phi4pp(i)*cos(phi3(i))-phi4p(i)*sin(phi3(i))*phi3p(i)-...
+        phi4p(i)*sin(phi3(i))*phi3p(i)-phi4(i)*(sin(phi3(i))*phi3pp(i)+(phi3p(i))^2*cos(phi3(i))),...
+        phi4pp(i)*sin(phi3(i))+phi4p(i)*cos(phi3(i))*phi3p(i)+...
+        phi4p(i)*cos(phi3(i))*phi3p(i)+phi4(i)*(cos(phi3(i))*phi3pp(i)-(phi3p(i))^2*sin(phi3(i)))];
+    cg4pp(i,:)=[-phi5pp(i)*H*sin(phi5(i)-pi+eps)-(phi5p(i))^2*H*cos(phi5(i)-pi+eps),...
+        phi5pp(i)*H*cos(phi5(i)-pi+eps)-(phi5p(i))^2*H*sin(phi5(i)-pi+eps)];
+    cg5pp(i,:)=0.5*[phi2pp(i)+L45*cos(phi5(i)+pi/2)*phi5p(i)^2+L45*sin(phi5(i)+pi/2)*phi5pp(i),-L45*cos(phi5(i)+pi/2)*phi5pp(i)+L45*sin(phi5p(i)+pi/2)*phi5p(i)^2]+[-L45*cos(phi5(i)+pi/2)*phi5p(i)^2-L45*sin(phi5(i)+pi/2)*phi5pp(i),L45*cos(phi5(i)+pi/2)*phi5pp(i)-L45*sin(phi5p(i)+pi/2)*phi5p(i)^2];
+    cg6pp(i,:)=[phi2pp(i) , 0];
+
+    %modulos velocidades centros de gravedad
+    mcgp2(i)=norm(cg2p(i,:));
+    mcgp3(i)=norm(cg3p(i,:));
+    mcgp4(i)=norm(cg4p(i,:));
+    mcgp5(i)=norm(cg5p(i,:));
+    mcgp6(i)=norm(cg6p(i,:));
+    %modulos aceleraciones centros de gravedad
+    mcgpp2(i)=norm(cg2pp(i,:));
+    mcgpp3(i)=norm(cg3pp(i,:));
+    mcgpp4(i)=norm(cg4pp(i,:));
+    mcgpp5(i)=norm(cg5pp(i,:));
+    mcgpp6(i)=norm(cg6pp(i,:));
+
+    %calculo del problema dinámico
+    dinamica
+    Xd(:,i)=Ad\bd; %resolvemos el vector de incógnitas para cada iteración
+    nu(i,:)=phi5(i)-phi3(i)-pi; %theta3-theta2-pi
+end
+
+pintagraf(2,3,t,[phi2,phi2p,phi2pp],...
+    {'Posicion del neumático','Velocidad del neumático','Aceleracion del neumático'},...
+    {'phi2(mm)','phi2p(mm/s)','phi2pp(mm/s^2)'});
+pintagraf(3,3,t,[phi3,phi3p,phi3pp],...
+    {'Posicion del amortiguador','Velocidad del amortiguador','Aceleracion del amortiguador'},...
+    {'phi3(rad)','phi3p(rad/s)','phi3pp(rad/s^2)'});
+pintagraf(4,3,t,[phi4,phi4p,phi4pp],...
+    {'Posicion de la barra del amortiguador','Velocidad de la barra del amortiguador','Aceleracion de la barra del amortiguador'},...
+    {'phi4(mm)','phi4p(mm/s)','phi4pp(mm/s^2)'});
+pintagraf(5,3,t,[phi5,phi5p,phi5pp],...
+    {'Posicion del rocker','Velocidad del rocker','Aceleracion del rocker'},...
+    {'phi5(rad)','phi5p(rad/s)','phi5pp(rad/s^2)'});
+pintagraf(6,3,t,[phi6,phi6p,phi6pp],...
+    {'Posicion de la pushbar','Velocidad de la pushbar','Aceleracion de la pushbar'},...
+    {'phi6(rad)','phi6p(rad/s)','phi6pp(rad/s^2)'});
+%cdgs en eje x
+pintagraf(7,3,t,[cg6(:,1),cg6p(:,1),cg6pp(:,1)],...
+    {'Posicion x del cdg neumático','Velocidad x del cdg neumático','Aceleracion x del cdg neumático'},...
+    {'cg6(mm)','cg6p(mm/s)','cg6pp(mm/s^2)'});
+pintagraf(8,3,t,[cg2(:,1),cg2p(:,1),cg2pp(:,1)],...
+    {'Posicion x del cdg amortiguador','Velocidad x del cdg amortiguador','Aceleracion x del cdg amortiguador'},...
+    {'cg2(mm)','cg2p(mm/s)','cg2pp(mm/s^2)'});
+pintagraf(9,3,t,[cg3(:,1),cg3p(:,1),cg3pp(:,1)],...
+    {'Posicion x del cdg de la barra del amortiguador','Velocidad x del cdg de la barra del amortiguador','Aceleracion x del cdg de la barra del amortiguador'},...
+    {'cg3(mm)','cg3p(mm/s)','cg3pp(mm/s^2)'});
+pintagraf(10,3,t,[cg4(:,1),cg4p(:,1),cg4pp(:,1)],...
+    {'Posicion x del cdg rocker','Velocidad x del cdg rocker','Aceleracion x del cdg rocker'},...
+    {'cg4(mm)','cg4p(mm/s)','cg4pp(mm/s^2)'});
+pintagraf(11,3,t,[cg5(:,1),cg5p(:,1),cg5pp(:,1)],...
+    {'Posicion x del cdg de la pushbar','Velocidad x del cdg de la pushbar','Aceleracion x del cdg de la pushbar'},...
+    {'cg5(mm)','cg5p(mm/s)','cg5pp(mm/s^2)'});
+%cdgs en eje y
+pintagraf(12,3,t,[cg6(:,2),cg6p(:,2),cg6pp(:,2)],...
+    {'Posicion y del cdg neumático','Velocidad y del cdg neumático','Aceleracion y del cdg neumático'},...
+    {'cg6(mm)','cg6p(mm/s)','cg6pp(mm/s^2)'});
+pintagraf(13,3,t,[cg2(:,2),cg2p(:,2),cg2pp(:,2)],...
+    {'Posicion y del cdg amortiguador','Velocidad y del cdg amortiguador','Aceleracion y del cdg amortiguador'},...
+    {'cg2(mm)','cg2p(mm/s)','cg2pp(mm/s^2)'});
+pintagraf(14,3,t,[cg3(:,2),cg3p(:,2),cg3pp(:,2)],...
+    {'Posicion y del cdg de la barra del amortiguador','Velocidad y del cdg de la barra del amortiguador','Aceleracion y del cdg de la barra del amortiguador'},...
+    {'cg3(mm)','cg3p(mm/s)','cg3pp(mm/s^2)'});
+pintagraf(15,3,t,[cg4(:,2),cg4p(:,2),cg4pp(:,2)],...
+    {'Posicion y del cdg rocker','Velocidad y del cdg rocker','Aceleracion y del cdg rocker'},...
+    {'cg4(mm)','cg4p(mm/s)','cg4pp(mm/s^2)'});
+pintagraf(16,3,t,[cg5(:,2),cg5p(:,2),cg5pp(:,2)],...
+    {'Posicion y del cdg de la pushbar','Velocidad y del cdg de la pushbar','Aceleracion y del cdg de la pushbar'},...
+    {'cg5(mm)','cg5p(mm/s)','cg5pp(mm/s^2)'});
+%Módulo velocidad y de la aceleración
+pintagraf(17,2,t,[mcgp6(:),mcgpp6(:)],...
+    {'Módulo de la velocidad del neumático','Módulo de la aceleracion del neumático'},...
+    {'norm(cg6p)','norm(cg6pp)'});
+pintagraf(18,2,t,[mcgp2(:),mcgpp2(:)],...
+    {'Módulo de la velocidad del amortiguador','Módulo de la aceleración del amortiguador'},...
+    {'norm(cg2p)','norm(cg2pp)'});
+pintagraf(19,2,t,[mcgp3(:),mcgpp3(:)],...
+    {'Módulo de la velocidad de la barra del amortiguador','Módulo de la aceleracion de la barra del amortiguador'},...
+    {'norm(cg3p)','norm(cg3pp)'});
+pintagraf(20,2,t,[mcgp4(:),mcgpp4(:)],...
+    {'Módulo de la velocidad del rocker','Módulo de la aceleracion del rocker'},...
+    {'norm(cg4p)','norm(cg4pp)'});
+pintagraf(21,2,t,[mcgp5(:),mcgpp5(:)],...
+    {'Módulo de la velocidad de la pushbar','Módulo de la aceleracion de la pushbar'},...
+    {'norm(cg5p)','norm(cg5pp)'});
+
+CG=[cg2';cg3';cg4';cg5';cg6'];
+
+% ANÁLISIS DINÁMICO DEL PROBLEMA
+    figure(22)
+    F=Xd(15,:)'.*1e-3; %pasar de kg*mm/s^2 a kg*m/s^2
+    plot(t,F) % dibuja la evolución temporal de la fuerza responsable del movimiento
+    xlabel('Tiempo (s)');ylabel('Fuerza motriz (N)')
+
+    figure(23)
+    plot(t,nu) % dibuja la evolución temporal del ángulo de transmisión del movimiento
+    xlabel('Tiempo (s)');ylabel('Ángulo de transmisión (rad)')
+
+    %inicializar energías
+    T2=zeros(np,1);T3=zeros(np,1);T4=zeros(np,1);T5=zeros(np,1);T6=zeros(np,1);
+    V2=zeros(np,1);V3=zeros(np,1);V4=zeros(np,1);V5=zeros(np,1);V6=zeros(np,1);
+    E=zeros(np,1);Ttot=zeros(np,1);Vtot=zeros(np,1);Wm=zeros(np,1);Wm2=zeros(np,1);
+    Wr=zeros(np,1); % fuerza resistente nula, el mecanismo no tiene fuerzas no conservativas
+    dT=zeros(np,1);dV=zeros(np,1);dE=zeros(np,1);
+
+% t(128)=2s fin del primer ciclo
+for i=1:128
+    %energía cinética, calculada en los centro de gravedad
+    T2(i)=(0.5*m2*(norm(cg2p(i,:)))^2 + 0.5*IG2*(phi3p(i))^2)*1e-6; %amortiguador (traslacion + rotacion)
+    T3(i)=(0.5*m3*(phi4p(i))^2 + 0.5*IG3*(phi3p(i))^2)*1e-6; %barra del amortiguador (traslacion + rotacion)
+    T4(i)=(0.5*m4*(norm(cg4p(i,:)))^2 + 0.5*IG4*(phi5p(i))^2)*1e-6; %rocker (rotacion + traslacion)
+    T5(i)=(0.5*m5*(norm(cg5p(i,:)))^2 + 0.5*IG5*(phi6p(i))^2)*1e-6; %pushbar (rotacion + traslacion)
+    T6(i)=(0.5*m6*(phi2p(i))^2)*1e-6; %neumático (traslacion)
+    Ttot(i)=T2(i)+T3(i)+T4(i)+T5(i)+T6(i);
+    %energía potencial
+    V2(i)=(L2*0.5*cos(phi3(i))*m2*g)*1e-6; %amortiguador
+    V3(i)=(phi4(i)*cos(phi3(i))*m3*g)*1e-6; %barra del amortiguador
+    V4(i)=((H24-cg4(i,1))*m4*g)*1e-6; %rocker
+    V5(i)=((H24-L5*0.5*cos(phi6(i))+phi2(i))*m5*g)*1e-6; %pushbar
+    V6(i)=((H24+phi2(i))*m6*g)*1e-6; %neumático
+    Vtot(i)=V2(i)+V3(i)+V4(i)+V5(i)+V6(i);
+
+    if i>=2
+        dT(i)=Ttot(1)-Ttot(i);
+        dV(i)=Vtot(1)-Vtot(i);
+        dE(i)=dT(i)+dV(i);
+    end
+
+    %energía total
+    E(i)=Ttot(i)+Vtot(i);
+    
+    %calculo del trabajo de la fuerza motriz
+    cg6x=cg6(1:128,1)*1e-3; %pasando de mm a m
+    cg6xp=cg6p(1:128,1)*1e-3;
+    t2=t(1:128);
+    if i >= 2
+    Wm(i) = trapz(cg6x(1:i),F(1:i)); 
+    Wm2(i) = trapz(t2(1:i),F(1:i).*cg6xp(1:i));
+    else
+    Wm(i) = 0;
+    Wm2(i) = 0;
+    end
+
+end
+
+pintagraf(24,2,t,[Xd(1,:)'*1e-3,Xd(2,:)'*1e-3],... %pasando de mN a N
+    {'Evolución reacción horizontal en el punto fijo del amortiguador','Evolución reacción vertical en el punto fijo del amortiguador'},...
+    {'R23x(N)','R23y(N)'}); %dibujar reacciones entre sólidos 2 y 1
+pintagraf(25,2,t,[dT(:),dV(:)],...
+    {'Evolución variación energía cinética total del mecanismo','Evolución variación energía potencial total del mecanismo'},...
+    {'dT(J)','dV(J)'});
+pintagraf(26,2,t,[Wm(:),Wr(:)],...
+    {'Evolución trabajo motor','Evolución trabajo resistente'},...
+    {'Wm(J)','Wr(J)'});
+pintagraf(27,2,t,[dE(:),Wm(:)],...
+    {'Evolución suma energías','Evolución suma trabajos'},...
+    {'deltaT+deltaV (J)','Wm+Wr (J)'});
+pintagraf(28,2,t,[dE(:),Wm2(:)],...
+    {'Evolución suma energías','Evolución suma trabajos'},...
+    {'deltaT+deltaV (J)','Wm+Wr (J)'});
+
+%quitar el comentario para que se muestre la animación al correr el programa
+figure(29)
+anima(phi4,phi2,phi5,phi3,CG,data,np)
