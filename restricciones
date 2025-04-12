@@ -1,0 +1,24 @@
+%funcion restricciones
+function wv=restricciones(qd,qi,data)
+
+L34=data.L34;
+L45=data.L45;
+H24=data.H24;
+V24=data.V24;
+V41=data.V41;
+L5=data.L5;
+
+phi3=qd(1);%theta2
+phi4=qd(2);%s3
+phi5=qd(3);%theta3
+phi6=qd(4);%theta5
+
+phi2=qi;%s5
+
+%ecuaciones de lazo del problema, esto es lo que se cambia dependiendo del
+%problema
+wv(1,1)=phi4*cos(phi3)+L34*cos(phi5) - H24;
+wv(2,1)=phi4*sin(phi3)+L34*sin(phi5) - V24;
+wv(3,1)=L45*cos(phi5)+L5*cos(phi6) - phi2;
+wv(4,1)=-L45*sin(phi5)+L5*sin(phi6) - V41;
+
