@@ -1,0 +1,36 @@
+Ad=sparse(15,15);
+%Xd=[R21x,R21y,R23x,R23y,M23,R34x,R34y,R41x,R41y,R45x,R45y,R56x,R56y,R61y,F];
+%incógnitas problema inverso (reacciones)
+g=9.81e3;IG2=0.519e6;IG3=0.094e6;IG5=0.000156e6;IG4=0.2093e6;
+m2=0.2;m3=0.12;m4=0.276;m5=0.128;m6=2;
+Ad(1,14)=1;Ad(1,13)=-1; %ecuaciones barra 6
+Ad(2,12)=-1;Ad(2,15)=1; 
+Ad(3,13)=1;Ad(3,11)=1; %ecuaciones barra 5
+Ad(4,12)=1;Ad(4,10)=1;
+Ad(5,10)=L5*0.5*sin(phi6(i));Ad(5,11)=-L5*0.5*cos(phi6(i));Ad(5,12)=-L5*0.5*sin(phi6(i));Ad(5,13)=L5*0.5*cos(phi6(i));
+Ad(6,8)=1;Ad(6,10)=-1;Ad(6,6)=-1; %ecuaciones barra 4
+Ad(7,9)=1;Ad(7,11)=-1;Ad(7,7)=-1;
+Ad(8,6)=L34*sin(phi5(i));Ad(8,7)=L34*cos(phi5(i));Ad(8,10)=-L45*sin(phi5(i)+pi*0.5);Ad(8,6)=L45*sin(phi5(i)+pi*0.5);
+Ad(9,6)=-tan(phi3(i));Ad(9,7)=1; %relacion entre R34x y R34y que realmente son una reaccion descompuesta
+Ad(10,3)=-1;Ad(10,6)=1; %ecuaciones barra 3
+Ad(11,4)=-1;Ad(11,7)=1;
+Ad(12,5)=-1;
+Ad(13,1)=1;Ad(13,3)=1; %ecuaciones barra 2
+Ad(14,2)=1;Ad(14,4)=1;
+Ad(15,1)=L2*0.5*sin(phi3(i));Ad(15,2)=L2*0.5*cos(phi3(i));Ad(15,3)=-L2*0.5*sin(phi3(i));Ad(15,4)=L2*0.5*cos(phi3(i));Ad(15,5)=1;
+
+bd=[m6*cg6pp(i,2);
+    -m6*g+m6*cg6pp(i,1);
+    m5*cg5pp(i,2);
+    m5*cg5pp(i,1)-m5*g;
+    phi6pp(i)*IG5;
+    m4*cg4pp(i,1)-m4*g;
+    m4*cg4pp(i,2);
+    IG4*phi5pp(i)+m4*g*cg4(i,2)-m4*cg4pp(i,1)*cg4(i,2)-m4*cg4pp(i,2)*cg4(i,1);
+    0;
+    m3*cg3pp(i,1)-m3*g;
+    m3*cg3pp(i,2);
+    IG3*phi3pp(i);
+    m2*cg2pp(i,1)-m2*g;
+    m2*cg2pp(i,2);
+    IG2*phi3pp(i)];
