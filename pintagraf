@@ -1,0 +1,11 @@
+%funcion postprocesado
+function pintagraf(nfig,nfilas,t,X,TITLE,VAR)
+figure(nfig);
+for i=1:nfilas
+    subplot(nfilas,1,i);
+    plot(t,X(:,i));
+    title(TITLE{i});
+    ylabel(VAR{i});
+end
+xlabel('Tiempo (s)');
+end
